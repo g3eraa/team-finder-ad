@@ -116,3 +116,22 @@
     text-decoration: underline;
     color: #666;
 }
+
+@media (max-width: 1023px) {
+    .participants-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .participants-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+}
+
+@media (max-width: 479px) {
+    .participants-grid {
+        grid-template-columns: 1fr;
+    }
+}

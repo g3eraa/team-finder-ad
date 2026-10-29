@@ -1,4 +1,8 @@
 /team_finder/media/
+/media/avatars/*
+!/media/avatars/test_*.png
+/staticfiles/
+pass.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -8,7 +8,43 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  web:
+    build: .
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      DJANGO_DEBUG: "False"
+    container_name: teamfinder_web
+    volumes:
+      - static:/app/staticfiles
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  gateway:
+    build: ./gateway
+    container_name: teamfinder_gateway
+    ports:
+      - "${GATEWAY_PORT:-80}:80"
+    volumes:
+      - static:/srv/static:ro
+      - media:/srv/media:ro
+    depends_on:
+      - web
     restart: always
 
 volumes:
   postgres_data:
+  static:
+  media:

@@ -118,21 +118,24 @@
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
   padding: 24px 16px;
   transform: translateX(100%);
-  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, visibility 0s linear 0.3s;
   z-index: 100;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 
 .user-sidebar.show {
   transform: translateX(0);
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition-delay: 0s;
 }
 
 .user-sidebar a {
   display: block;
-  margin-bottom: 18px;
+  padding: 9px 0;
   color: #374151;
   text-decoration: none;
   font-weight: 500;
@@ -164,4 +167,26 @@
 .sidebar-overlay.show {
   opacity: 1;
   pointer-events: auto;
+}
+
+@media (max-width: 639px) {
+  .header-content {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "logo actions"
+      "nav nav";
+    row-gap: 8px;
+  }
+
+  .logo-link {
+    grid-area: logo;
+  }
+
+  .main-nav {
+    grid-area: nav;
+  }
+
+  .user-actions {
+    grid-area: actions;
+  }
 }

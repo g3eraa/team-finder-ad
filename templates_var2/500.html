@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Что-то пошло не так{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/project_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h1 class="project-title">Что-то пошло не так</h1>
+    <p class="project-subtitle">На сервере произошла ошибка. Попробуйте обновить страницу чуть позже.</p>
+    <a href="/projects/list/" class="black-button">На главную</a>
+</div>
+{% endblock %}

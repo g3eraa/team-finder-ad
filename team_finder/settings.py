@@ -1,15 +1,20 @@
 from pathlib import Path
-from decouple import config
+from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# TODO: Создать и заполнить .env, ориентируясь на .env_example
 
 SECRET_KEY = config("DJANGO_SECRET_KEY")
 
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
+
+CSRF_TRUSTED_ORIGINS = config("DJANGO_CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+
+# HTTPS terminates at the Caddy gateway, which passes the original scheme.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = config("DJANGO_SECURE_COOKIES", default=False, cast=bool)
+CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
 
 # Application definition
@@ -84,7 +89,7 @@ if not DEBUG:
                 "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
             },
             {
-                "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+                "NAME": "users.validators.MinimumLengthValidator",
             },
             {
                 "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -112,10 +117,15 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 # Media files
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Test data: python manage.py loaddata test_data
+
+FIXTURE_DIRS = [BASE_DIR / "fixtures"]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

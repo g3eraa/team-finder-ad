@@ -9,18 +9,21 @@
 
 {% block content %}
 <div class="auth-card">
-    <h2>Регистрация</h2>
+    <h1>Регистрация</h1>
     <form method="post">
         {% csrf_token %}
+        {{ form.non_field_errors }}
         <div class="name-fields">
-            <div>{{ form.name.label_tag }} {{ form.name }}</div>
-            <div>{{ form.surname.label_tag }} {{ form.surname }}</div>
+            <div>{{ form.name.label_tag }} {{ form.name }} {{ form.name.errors }}</div>
+            <div>{{ form.surname.label_tag }} {{ form.surname }} {{ form.surname.errors }}</div>
         </div>
         {{ form.email.label_tag }} {{ form.email }}
+        {{ form.email.errors }}
         {{ form.password.label_tag }} {{ form.password }}
-        {% for error in form.errors.values %}
-        <p style="color: red;">{{error}}</p>
-        {% endfor %}
+        {{ form.password.errors }}
+        {% if form.password.help_text %}
+        <div class="field-hint" id="{{ form.password.auto_id }}_helptext">{{ form.password.help_text }}</div>
+        {% endif %}
         <button type="submit">Зарегистрироваться</button>
     </form>
     <p class="auth-link">Уже есть аккаунт? <a href="{% url 'users:login' %}">Войти</a></p>

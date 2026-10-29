@@ -1,0 +1,343 @@
+[
+{
+  "model": "users.skill",
+  "pk": 1,
+  "fields": {
+    "name": "Python"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 2,
+  "fields": {
+    "name": "Django"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 3,
+  "fields": {
+    "name": "PostgreSQL"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 4,
+  "fields": {
+    "name": "JavaScript"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 5,
+  "fields": {
+    "name": "React"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 6,
+  "fields": {
+    "name": "TypeScript"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 7,
+  "fields": {
+    "name": "Figma"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 8,
+  "fields": {
+    "name": "UI/UX"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 9,
+  "fields": {
+    "name": "Go"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 10,
+  "fields": {
+    "name": "Docker"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 11,
+  "fields": {
+    "name": "Machine Learning"
+  }
+},
+{
+  "model": "users.skill",
+  "pk": 12,
+  "fields": {
+    "name": "C++"
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$kx83PmZKgggA6JuNUeWFdu$UdZfI41FefmnzzwH8kFoMcs5JgnzlgC/35TzxCXknrQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "anna@example.com",
+    "name": "Анна",
+    "surname": "Соколова",
+    "avatar": "avatars/test_anna.png",
+    "phone": "+79990000001",
+    "github_url": "https://github.com/anna-sokolova-dev",
+    "about": "Бэкенд-разработчица. Люблю Django и аккуратные схемы баз данных.",
+    "is_active": true,
+    "is_staff": false,
+    "groups": [],
+    "user_permissions": [],
+    "skills": [
+      2,
+      3,
+      1
+    ]
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$q8opw3tKxr392WkF8gm4T1$BMgu76yyNe0FdTdrAUP2yHoDCcTcRy7LA4gEbld71FA=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "maxim@example.com",
+    "name": "Максим",
+    "surname": "Орлов",
+    "avatar": "avatars/test_maxim.png",
+    "phone": "+79990000002",
+    "github_url": "https://github.com/maxim-orlov-dev",
+    "about": "Фронтенд-разработчик, делаю быстрые и понятные интерфейсы.",
+    "is_active": true,
+    "is_staff": false,
+    "groups": [],
+    "user_permissions": [],
+    "skills": [
+      4,
+      5,
+      6
+    ]
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$RZvpIhr8ymIMC8ScSsCRif$vIRu5yyYYOJWrNCfMZZAsiaLPey69spnCxroTXxpiSQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "katya@example.com",
+    "name": "Екатерина",
+    "surname": "Волкова",
+    "avatar": "avatars/test_katya.png",
+    "phone": null,
+    "github_url": "",
+    "about": "Продуктовый дизайнер. Помогу с прототипами и дизайн-системой.",
+    "is_active": true,
+    "is_staff": false,
+    "groups": [],
+    "user_permissions": [],
+    "skills": [
+      7,
+      8
+    ]
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$pfG4GnSgoA12ZMG0iylaM5$WbCPi2wPrrwq5hkU72zbi0WbPWlDAEXTbzEQpef6CU8=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "dmitry@example.com",
+    "name": "Дмитрий",
+    "surname": "Лебедев",
+    "avatar": "avatars/test_dmitry.png",
+    "phone": "+79990000004",
+    "github_url": "https://github.com/dmitry-lebedev-dev",
+    "about": "Пишу сервисы на Go, настраиваю Docker и CI.",
+    "is_active": true,
+    "is_staff": false,
+    "groups": [],
+    "user_permissions": [],
+    "skills": [
+      10,
+      9,
+      3
+    ]
+  }
+},
+{
+  "model": "users.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1000000$IETg38f2Gx3MFaQKH0mD4B$Ejj16sfKkCAjsCBXhsc8LQvhPop1CqIVTtxrRQPbdMI=",
+    "last_login": null,
+    "is_superuser": false,
+    "email": "sofia@example.com",
+    "name": "София",
+    "surname": "Морозова",
+    "avatar": "avatars/test_sofia.png",
+    "phone": null,
+    "github_url": "https://github.com/sofia-morozova-dev",
+    "about": "Занимаюсь машинным обучением и компьютерным зрением.",
+    "is_active": true,
+    "is_staff": false,
+    "groups": [],
+    "user_permissions": [],
+    "skills": [
+      12,
+      11,
+      1
+    ]
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 1,
+  "fields": {
+    "name": "Трекер привычек",
+    "description": "Веб-приложение, где можно отмечать полезные привычки и смотреть статистику по неделям. Нужны фронтенд-разработчик и дизайнер.",
+    "owner": [
+      "anna@example.com"
+    ],
+    "created_at": "2026-09-30T10:00:00Z",
+    "github_url": "https://github.com/anna-sokolova-dev/habit-tracker",
+    "status": "open",
+    "participants": [
+      [
+        "anna@example.com"
+      ],
+      [
+        "maxim@example.com"
+      ],
+      [
+        "katya@example.com"
+      ]
+    ]
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 2,
+  "fields": {
+    "name": "Бот для книжного клуба",
+    "description": "Telegram-бот, который предлагает книгу месяца и собирает голоса участников клуба.",
+    "owner": [
+      "anna@example.com"
+    ],
+    "created_at": "2026-10-03T18:30:00Z",
+    "github_url": "",
+    "status": "closed",
+    "participants": [
+      [
+        "anna@example.com"
+      ]
+    ]
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 3,
+  "fields": {
+    "name": "Афиша городских событий",
+    "description": "Агрегатор концертов, лекций и выставок с фильтрами по районам и датам. Ищем бэкендера на Go или Python.",
+    "owner": [
+      "maxim@example.com"
+    ],
+    "created_at": "2026-10-08T12:15:00Z",
+    "github_url": "https://github.com/maxim-orlov-dev/city-events",
+    "status": "open",
+    "participants": [
+      [
+        "maxim@example.com"
+      ],
+      [
+        "katya@example.com"
+      ],
+      [
+        "dmitry@example.com"
+      ]
+    ]
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 4,
+  "fields": {
+    "name": "Дизайн-система для pet-проектов",
+    "description": "Набор компонентов в Figma и их реализация на React, чтобы быстро собирать интерфейсы небольших проектов.",
+    "owner": [
+      "katya@example.com"
+    ],
+    "created_at": "2026-10-14T09:45:00Z",
+    "github_url": "",
+    "status": "open",
+    "participants": [
+      [
+        "anna@example.com"
+      ],
+      [
+        "katya@example.com"
+      ]
+    ]
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 5,
+  "fields": {
+    "name": "Мониторинг домашнего сервера",
+    "description": "Лёгкий сервис на Go, который собирает метрики Raspberry Pi и присылает уведомления о сбоях.",
+    "owner": [
+      "dmitry@example.com"
+    ],
+    "created_at": "2026-10-20T20:00:00Z",
+    "github_url": "https://github.com/dmitry-lebedev-dev/home-monitor",
+    "status": "open",
+    "participants": [
+      [
+        "dmitry@example.com"
+      ],
+      [
+        "sofia@example.com"
+      ]
+    ]
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 6,
+  "fields": {
+    "name": "Распознавание рукописных формул",
+    "description": "Нейросеть переводит фото конспекта с формулами в LaTeX. Нужны люди для разметки данных и веб-интерфейса.",
+    "owner": [
+      "sofia@example.com"
+    ],
+    "created_at": "2026-10-26T15:20:00Z",
+    "github_url": "https://github.com/sofia-morozova-dev/formula-ocr",
+    "status": "open",
+    "participants": [
+      [
+        "anna@example.com"
+      ],
+      [
+        "dmitry@example.com"
+      ],
+      [
+        "sofia@example.com"
+      ]
+    ]
+  }
+}
+]

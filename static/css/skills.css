@@ -12,8 +12,10 @@
 }
 
 .remove-skill-btn {
-  border:none; background:transparent; color:#888; font-size:14px;
-  cursor:pointer; line-height:1; padding:0 2px;
+  border:none; background:transparent; color:#6b7280; font-size:14px;
+  cursor:pointer; line-height:1; padding:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:24px; min-height:24px; margin:-5px -6px -5px 0;
 }
 .remove-skill-btn:hover { color:#c00; }
 
@@ -35,6 +37,7 @@
 }
 .skill-suggestions.hidden { display:none; }
 .skill-suggestions li { padding:6px 10px; cursor:pointer; }
-.skill-suggestions li:hover { background:#eee; }
+.skill-suggestions li:hover,
+.skill-suggestions li.active { background:#eee; }
 
 .skill-suggestions li.create-new { font-style:italic; }

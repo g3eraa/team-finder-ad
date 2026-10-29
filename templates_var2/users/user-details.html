@@ -20,7 +20,7 @@
                 <img src="{% static 'images/default-avatar.png' %}" alt="Аватар по умолчанию" class="profile-avatar">
             {% endif %}
             <div class="profile-details">
-                <h2 class="profile-name">{{ user.name }} {{ user.surname }}</h2>
+                <h1 class="profile-name">{{ user.name }} {{ user.surname }}</h1>
                 <p class="profile-description">
                     {{ user.about|default:"Описание профиля пока не добавлено." }}
                 </p>
@@ -42,7 +42,8 @@
         <div class="profile-actions">
             <a href="#"
                class="black-button black-button-share share-button"
-               data-url="/users/{{ user.id }}">
+               data-url="/users/{{ user.id }}"
+               aria-label="Скопировать ссылку на профиль" title="Скопировать ссылку на профиль">
                 {% include 'includes/svg/share.html' %}
             </a>
             {% if request.user.id == user.id %}
@@ -65,7 +66,7 @@
                 <span class="skill-chip" data-id="{{ skill.id }}">
                     {{ skill.name }}
                     {% if request.user.id == user.id %}
-                        <button type="button" class="remove-skill-btn" aria-label="Удалить" title="Удалить">×</button>
+                        <button type="button" class="remove-skill-btn" aria-label="Удалить навык {{ skill.name }}" title="Удалить">×</button>
                     {% endif %}
                 </span>
             {% empty %}
@@ -77,7 +78,8 @@
             {% endif %}
         </div>
         <div id="skill-input-wrapper" class="skill-input-wrapper hidden">
-            <input type="text" id="skill-input" placeholder="Введите навык..." autocomplete="off"/>
+            <input type="text" id="skill-input" placeholder="Введите навык..." autocomplete="off"
+                   aria-label="Название навыка" maxlength="124"/>
             <ul id="skill-suggestions" class="skill-suggestions hidden"></ul>
         </div>
     </div>
@@ -89,7 +91,7 @@
         <div class="collapsed-project-card">
             <div class="collapsed-project-card-header">
                 <h4><a href="/projects/{{ project.id }}">{{ project.name }}</a></h4>
-                <span class="project-status-black">
+                <span class="project-status-black{% if project.status == "closed" %} is-closed{% endif %}">
                     {% if project.status == "open" %}
                         Открыт
                     {% elif project.status == "closed" %}

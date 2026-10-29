@@ -39,8 +39,12 @@ flowchart LR
         CSS["static/css · fonts · images"]
     end
 
-    subgraph HOST["Машина разработчика"]
-        subgraph DJ["Django 5.2 — manage.py runserver (WSGI)"]
+    subgraph GW["Контейнер teamfinder_gateway — Caddy"]
+        CADDY["порт 80 (локально) / 80+443 с HTTPS (сервер)<br/>/static/ и /media/ — файлы из volumes<br/>остальное — reverse_proxy web:8000"]
+    end
+
+    subgraph HOST["Контейнер teamfinder_web (или runserver при локальной разработке)"]
+        subgraph DJ["Django 5.2 — gunicorn (WSGI), DEBUG=False"]
             MW["Цепочка middleware"]
             URL["URLconf<br/>team_finder/urls.py"]
             USERS["Приложение users<br/>User · Skill"]
@@ -51,8 +55,8 @@ flowchart LR
         end
         ENV[".env"]
         DEC["python-decouple"]
-        STATIC[("static/")]
-        MEDIA[("media/avatars/")]
+        STATIC[("static/ → collectstatic<br/>volume static")]
+        MEDIA[("media/avatars/<br/>volume media")]
         PIL["Pillow"]
     end
 
@@ -61,8 +65,9 @@ flowchart LR
         VOL[("volume postgres_data")]
     end
 
-    HTML -- "GET страниц, POST форм" --> MW
-    JS -- "fetch JSON + X-CSRFToken" --> MW
+    HTML -- "GET страниц, POST форм" --> CADDY
+    JS -- "fetch JSON + X-CSRFToken" --> CADDY
+    CADDY -- "X-Forwarded-Proto" --> MW
     MW --> URL
     URL --> USERS & PROJ & ADMIN
     USERS & PROJ --> TPL
@@ -71,12 +76,12 @@ flowchart LR
     PG --- VOL
     ENV --> DEC --> DJ
     USERS -- "генерация аватарки" --> PIL --> MEDIA
-    STATIC -. "/static/" .-> CSS
-    STATIC -. "/static/" .-> JS
-    MEDIA -. "/media/ (при DEBUG)" .-> HTML
+    STATIC -. "/static/ через Caddy" .-> CSS
+    STATIC -. "/static/ через Caddy" .-> JS
+    MEDIA -. "/media/ через Caddy<br/>(при runserver — Django при DEBUG)" .-> HTML
 ```
 
-**Стек:** Django 5.2.4, PostgreSQL 16 в Docker, psycopg2-binary, Pillow (аватарки), python-decouple (`.env`).
+**Стек:** Django 5.2.4 под gunicorn, Caddy (статика, медиа, HTTPS), PostgreSQL 16, Docker Compose, psycopg2-binary, Pillow (аватарки), python-decouple (`.env`). Выкладка — [DEPLOY.md](DEPLOY.md).
 Фронтенд рендерится на сервере; интерактивные действия (навыки, участие, завершение проекта) идут через `fetch` к JSON-эндпоинтам.
 
 ---
@@ -136,7 +141,7 @@ flowchart TB
 team-finder-ad/
 ├── manage.py
 ├── team_finder/                 # конфигурация проекта
-│   ├── settings.py              # + INSTALLED_APPS, AUTH_USER_MODEL, LOGIN_URL
+│   ├── settings.py              # + INSTALLED_APPS, AUTH_USER_MODEL, LOGIN_URL, FIXTURE_DIRS
 │   ├── urls.py                  # корневой URLconf: '', users/, projects/, admin/, media
 │   ├── wsgi.py
 │   └── asgi.py
@@ -148,6 +153,7 @@ team-finder-ad/
 │   ├── views.py                 # страницы и JSON-эндпоинты навыков
 │   ├── urls.py                  # app_name = "users"
 │   ├── admin.py                 # UserAdmin (email вместо username), SkillAdmin
+│   ├── tests.py                 # вход, профиль, навыки, фильтр, админка, тестовые данные
 │   └── migrations/
 ├── projects/                    # проекты и участие в них
 │   ├── models.py                # Project
@@ -155,14 +161,27 @@ team-finder-ad/
 │   ├── views.py                 # страницы и JSON-эндпоинты complete / toggle-participate
 │   ├── urls.py                  # app_name = "projects"
 │   ├── admin.py                 # ProjectAdmin
+│   ├── tests.py                 # список, создание, редактирование, участие, завершение
 │   └── migrations/
-├── templates_var2/              # шаблоны варианта 2 (выбираются через TASK_VERSION)
+├── templates_var2/              # шаблоны варианта 2 (выбираются через TASK_VERSION), 403/404/500
 ├── static/                      # css, js, fonts, images/default-avatar.png
-├── media/avatars/               # загруженные и сгенерированные аватарки
-├── docker-compose.yml           # сервис db: postgres:16
+├── fixtures/test_data.json      # тестовые пользователи, навыки, проекты (loaddata test_data)
+├── media/avatars/               # аватарки; в git только test_*.png тестовых пользователей
+├── .github/workflows/ci.yml     # CI/CD: flake8, тесты на postgres:16, образы в ghcr.io, деплой по SSH
+├── setup.cfg                    # настройки flake8 (длина строки 100, без migrations)
+├── Dockerfile                   # образ web: python:3.12-slim + gunicorn, пользователь app
+├── entrypoint.sh                # migrate + collectstatic при старте контейнера
+├── gateway/                     # образ gateway: caddy:2-alpine + Caddyfile
+├── docker-compose.yml           # локально: db + web (build) + gateway (build)
+├── docker-compose.production.yml # сервер: db + образы web/gateway из ghcr.io, HTTPS
+├── DEPLOY.md                    # настройка сервера, секретов GitHub и домена
 ├── .env                         # секреты и параметры (по образцу .env_example)
 └── requirements.txt
 ```
+
+В `fixtures/test_data.json` пользователи записаны без `pk` и связаны с проектами по email
+(natural keys: `--natural-foreign --natural-primary`), поэтому повторный `loaddata` обновляет
+тех же пользователей и не затирает администратора, созданного до загрузки.
 
 `Skill` лежит в приложении `users`: в варианте 2 навыки принадлежат только пользователям.
 
@@ -424,7 +443,8 @@ sequenceDiagram
     autonumber
     actor U as Пользователь
     participant B as Браузер
-    participant W as runserver (WSGI)
+    participant C as Caddy (gateway)
+    participant W as gunicorn (WSGI)
     participant MW as Middleware
     participant R as URLResolver
     participant V as View
@@ -433,7 +453,8 @@ sequenceDiagram
     participant T as Шаблонизатор
 
     U->>B: переход на /projects/list/?page=2
-    B->>W: HTTP GET
+    B->>C: HTTP GET
+    C->>W: reverse_proxy + X-Forwarded-Proto
     W->>MW: HttpRequest
     Note over MW: Security → Session → Common (APPEND_SLASH)<br/>→ CSRF → Authentication (request.user)<br/>→ Messages → XFrameOptions
     MW->>R: resolve(path)
@@ -447,9 +468,13 @@ sequenceDiagram
     T-->>V: HTML
     V-->>MW: HttpResponse 200
     MW-->>W: cookies sessionid и csrftoken
-    W-->>B: 200 text/html
-    B->>W: GET /static/css, /static/js, /media/avatars
+    W-->>C: 200 text/html
+    C-->>B: 200 text/html (gzip/zstd)
+    B->>C: GET /static/css, /static/js, /media/avatars
+    Note over C: файлы отдаёт сам Caddy из volumes static и media,<br/>Django в этом не участвует
 ```
+
+При локальной разработке (`manage.py runserver`, `DEBUG=True`) Caddy нет: статику и `/media/` отдаёт Django.
 
 ---
 
@@ -459,8 +484,9 @@ sequenceDiagram
 
 ```mermaid
 flowchart TB
-    BASE["base.html<br/>css: base, header<br/>js: header, projects, share, skills, utils<br/>body data-page = block page_id"]
-    HDR["includes/header.html<br/>меню гостя и авторизованного"]
+    BASE["base.html<br/>meta viewport · ссылка «Перейти к содержимому» · main#main<br/>css: base, header<br/>js: header, projects, share, skills, utils"]
+    HDR["includes/header.html<br/>гость: Войти · Регистрация<br/>авторизованный: кнопка меню + боковое меню"]
+    ERR["403.html · 404.html · 500.html<br/>страницы ошибок при DEBUG=False"]
     SVG["includes/svg/*.html<br/>17 иконок"]
     CARD["includes/project-card.html"]
     EMPTY["includes/empty-project-card.html"]
@@ -485,6 +511,7 @@ flowchart TB
     end
 
     PL & PD & PC & PF -. "extends" .-> BASE
+    ERR -. "extends" .-> BASE
     UR & UL & UD & UE & UC & UPA -. "extends" .-> BASE
     PL --> CARD & EMPTY & FAVJS
     PF --> CARD & EMPTY & FAVJS
@@ -501,13 +528,14 @@ flowchart TB
 |---|---|---|---|
 | `projects/project_list.html` | `project_list` | `projects`, `page_obj`, `query_prefix` | цикл идёт по `page_obj`; `query_prefix = ""` |
 | `projects/project-details.html` | `project_detail` | `project` | права проверяются через `user` из контекст-процессора, поэтому **не передавать** свой `user` |
-| `projects/create-project.html` | `project_create`, `project_edit` | `form` (`name`, `description`, `github_url`, `status`), `is_edit` | |
-| `users/register.html` | `register` | `form` (`name`, `surname`, `email`, `password`) | |
+| `projects/create-project.html` | `project_create`, `project_edit` | `form` (`name`, `description`, `github_url`, `status`), `is_edit` | ошибки выводятся под своим полем (`{{ form.<поле>.errors }}`); «Отмена» при редактировании ведёт в проект |
+| `users/register.html` | `register` | `form` (`name`, `surname`, `email`, `password`) | ошибки под полями; подсказка к паролю — `help_text` из включённых валидаторов |
 | `users/login.html` | `login_view` | `form` (`email`, `password`) | ошибка «Неверный email или пароль» — `non_field_errors` |
 | `users/user-details.html` | `user_detail` | `user` — **просматриваемый** профиль | перекрывает `user` из контекст-процессора; владелец определяется по `request.user.id == user.id` |
-| `users/edit_profile.html` | `edit_profile` | `form` (`name`, `surname`, `avatar`, `about`, `phone`, `github_url`) | в шаблоне уже есть `enctype="multipart/form-data"`, во view форму создавать с `request.FILES` |
+| `users/edit_profile.html` | `edit_profile` | `form` (`name`, `surname`, `avatar`, `about`, `phone`, `github_url`) | форма создаётся с `request.FILES`; ошибки под полями; превью выбранной аватарки до сохранения |
 | `users/change_password.html` | `change_password` | `form` (`old_password`, `new_password1`, `new_password2`) | `PasswordChangeForm`, затем `update_session_auth_hash` |
 | `users/participants.html` | `user_list` | `page_obj`, `all_skills`, `active_skill`, `query_prefix` | `all_skills` — **список строк** с названиями, `active_skill` — строка из `?skill=` |
+| `403.html`, `404.html`, `500.html` | стандартные обработчики Django | `exception` (текст `PermissionDenied`) | используются при `DEBUG=False`; ведут обратно на главную |
 
 ---
 
@@ -517,10 +545,10 @@ flowchart TB
 flowchart LR
     subgraph JSM["static/js — подключаются в base.html на каждой странице"]
         UT["utils.js<br/>window.getCookie · window.toast"]
-        HD["header.js<br/>боковое меню"]
+        HD["header.js<br/>меню: aria-expanded, Escape,<br/>фокус внутрь и обратно"]
         SH["share.js<br/>.share-button → буфер обмена"]
-        SK["skills.js<br/>срабатывает при наличии #skills-container"]
-        PJ["projects.js<br/>#complete-project-btn · #participate-btn"]
+        SK["skills.js<br/>при наличии #skills-container<br/>Enter — введённое название, ↑↓ — подсказки"]
+        PJ["projects.js<br/>#complete-project-btn (с подтверждением)<br/>#participate-btn"]
     end
 
     PJ -. "getCookie, toast" .-> UT
@@ -538,6 +566,8 @@ flowchart LR
 ```
 
 Все POST-запросы из JS передают CSRF-токен в заголовке `X-CSRFToken` (из cookie `csrftoken`) и ждут JSON в ответ.
+Данные, пришедшие с сервера (названия навыков, имена), вставляются в DOM только через `textContent`, без `innerHTML`:
+название навыка задаёт любой пользователь. Ошибки JSON-эндпоинтов показываются уведомлением `window.toast`.
 `skills.js` решает, с чем работает, по `data-user-id` или `data-project-id` у `#skills-container`; в варианте 2 это всегда `data-user-id`.
 
 ---
@@ -623,11 +653,11 @@ sequenceDiagram
     V-->>JS: 200 [{"id": 3, "name": "Python"}]
     JS-->>O: подсказки и «Создать „Py“», если точного совпадения нет
 
-    alt выбран существующий навык
-        O->>JS: клик по «Python»
+    alt выбрана подсказка
+        O->>JS: клик по «Python» или ↓ и Enter
         JS->>V: POST /users/5/skills/add/ {"skill_id": 3}
-    else создаётся новый навык
-        O->>JS: «Создать „Py“»
+    else введённое название
+        O->>JS: «Создать „Py“» или Enter без выбора подсказки
         JS->>V: POST /users/5/skills/add/ {"name": "Py"}
     end
 
@@ -640,7 +670,8 @@ sequenceDiagram
     end
     V->>DB: user.skills.add(skill), если навыка ещё нет — added
     V-->>JS: 200 {"id", "name", "skill_id", "created", "added"}
-    JS-->>O: новый тег без перезагрузки
+    JS-->>O: новый тег без перезагрузки (textContent)
+    Note over JS,O: при 400/403/404 — уведомление с текстом ошибки сервера
 ```
 
 ### 10.4 Удаление навыка
@@ -739,7 +770,7 @@ flowchart TD
     AUTH -- "нет" --> LOGIN["302 → /users/login/?next=..."]
     AUTH -- "да" --> MODE{"редактирование?"}
     MODE -- "да" --> OWN{"request.user == project.owner?"}
-    OWN -- "нет" --> F403["403 Forbidden"]
+    OWN -- "нет" --> F403["PermissionDenied → 403.html<br/>«Редактировать проект может только его автор.»"]
     OWN -- "да" --> FE["ProjectForm(instance=project)<br/>is_edit = True"]
     MODE -- "нет" --> FC["ProjectForm()<br/>is_edit = False"]
     FE & FC --> METH{"метод запроса"}
@@ -797,7 +828,7 @@ flowchart TD
     JA -- "да" --> OW{"нужен владелец?"}
     OW -- "нет" --> OK["выполнить действие"]
     OW -- "да" --> CHK{"request.user — владелец?"}
-    CHK -- "нет" --> F403["403 Forbidden"]
+    CHK -- "нет" --> F403["403<br/>HTML: страница 403.html<br/>JSON: {status: error, message}"]
     CHK -- "да" --> OK
 ```
 
@@ -827,7 +858,7 @@ flowchart LR
         H1["Главная"]
         H2["Участники"]
         H3["Вход / Регистрация<br/>для гостя"]
-        H4["Создать проект · Профиль ·<br/>Редактировать профиль ·<br/>Сменить пароль · Выход<br/>для авторизованного"]
+        H4["Создать проект + кнопка меню с аватаром:<br/>Мой профиль · Редактировать профиль ·<br/>Сменить пароль · Поделиться · Выйти<br/>для авторизованного"]
     end
 
     PL["Список проектов<br/>/projects/list/"]
@@ -849,9 +880,10 @@ flowchart LR
 
     PL -- "название на карточке" --> PD
     PL -- "автор на карточке" --> UD
-    PL -- "+ Создать проект" --> PC
+    PL -- "+ Создать проект (авторизованный)" --> PC
     PD -- "автор, участники" --> UD
     PD -- "Редактировать (владелец)" --> PE
+    PD -- "Войти, чтобы участвовать (гость)" --> LI
     UD -- "проекты пользователя" --> PD
     UD -- "Редактировать профиль (владелец)" --> UE
     UD -- "Добавить проект (владелец)" --> PC
@@ -876,6 +908,7 @@ flowchart LR
     subgraph ENVF[".env"]
         K1["DJANGO_SECRET_KEY"]
         K2["DJANGO_DEBUG"]
+        K6["DJANGO_ALLOWED_HOSTS · DJANGO_CSRF_TRUSTED_ORIGINS<br/>DJANGO_SECURE_COOKIES"]
         K3["POSTGRES_DB · POSTGRES_USER · POSTGRES_PASSWORD"]
         K4["POSTGRES_HOST · POSTGRES_PORT"]
         K5["TASK_VERSION=2"]
@@ -886,19 +919,27 @@ flowchart LR
         S2["DEBUG<br/>при True валидаторы паролей выключены,<br/>/media/ раздаёт Django"]
         S3["DATABASES.default<br/>engine postgresql"]
         S4["TEMPLATES.DIRS = templates_var2"]
+        S5["ALLOWED_HOSTS · CSRF_TRUSTED_ORIGINS<br/>SESSION/CSRF_COOKIE_SECURE"]
     end
 
     K1 --> S1
     K2 --> S2
     K3 & K4 --> S3
     K5 --> S4
+    K6 --> S5
 
-    ENVF -- "env_file" --> DC["docker-compose.yml<br/>service db: postgres:16"]
-    DC --> PG[("teamfinder_db<br/>ports host:5432")]
+    ENVF -- "env_file" --> DC["docker-compose.yml<br/>db · web · gateway"]
+    DC --> PG[("teamfinder_db<br/>ports POSTGRES_PORT:5432")]
+    DC --> WEB["teamfinder_web<br/>gunicorn, POSTGRES_HOST=db"]
+    DC --> GWY["teamfinder_gateway<br/>Caddy, SITE_ADDRESS или :80"]
+    GWY -- "reverse_proxy" --> WEB
     S3 -- "psycopg2" --> PG
+
+    FX["fixtures/test_data.json"] -- "loaddata test_data<br/>FIXTURE_DIRS" --> PG
+    CI[".github/workflows/ci.yml<br/>flake8 · tests · build · deploy"] -.->|"образы ghcr.io + ssh"| DC
 ```
 
-**Что добавить в `settings.py`** для этой архитектуры:
+**Что изменено в `settings.py`** относительно заготовки:
 
 ```python
 INSTALLED_APPS += ["users", "projects"]
@@ -906,13 +947,19 @@ INSTALLED_APPS += ["users", "projects"]
 AUTH_USER_MODEL = "users.User"   # задать ДО первого migrate
 LOGIN_URL = "users:login"
 LANGUAGE_CODE = "ru-ru"           # русские сообщения стандартных форм и админки
+FIXTURE_DIRS = [BASE_DIR / "fixtures"]   # python manage.py loaddata test_data
+STATIC_ROOT = BASE_DIR / "staticfiles"   # collectstatic → volume, отдаёт Caddy
+ALLOWED_HOSTS / CSRF_TRUSTED_ORIGINS     # из .env (DJANGO_ALLOWED_HOSTS, DJANGO_CSRF_TRUSTED_ORIGINS)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")  # HTTPS завершается на Caddy
+SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = DJANGO_SECURE_COOKIES  # True на сервере с HTTPS
+AUTH_PASSWORD_VALIDATORS  # MinimumLengthValidator заменён на users.validators.MinimumLengthValidator
 ```
 
 ---
 
 ## 14. Нюансы и расхождения между ТЗ, docs и шаблонами
 
-| # | Где | Проблема | Решение в архитектуре |
+| # | Где | Проблема | Как решено |
 |---|---|---|---|
 | 1 | `docs/4` и `skills.js` | docs требуют ответ `{"skill_id", "created", "added"}`, а `skills.js` читает `skill.id` и `skill.name` | возвращать объединение: `{"id", "name", "skill_id", "created", "added"}` |
 | 2 | `docs/4`, модель | `User.skills` описано как «внешний ключ», но по смыслу у пользователя много навыков, а у навыка много пользователей | `ManyToManyField(Skill, related_name="users", blank=True)` |
@@ -931,3 +978,10 @@ LANGUAGE_CODE = "ru-ru"           # русские сообщения станд
 | 15 | Кастомный `User` | `AUTH_USER_MODEL` нельзя безболезненно поменять после первого `migrate` | создать приложение `users` с моделью до первой миграции |
 | 16 | Вариант 1 в шаблонах | `favorite_projects.html` и `project-fav-toggle.js` остались от варианта 1; в карточке варианта 2 сердечка нет | эндпоинты избранного не реализуются, подключённый скрипт ничего не делает |
 | 17 | Производительность | `project-card.html` вызывает `project.participants.count`, `owner.*` для каждой карточки | `select_related("owner").prefetch_related("participants")`; навыки — `prefetch_related("skills")` |
+| 18 | `base.html` | нет `<meta name="viewport">`: на телефоне показывалась уменьшенная копия десктопа (ширина 980 px) | добавлен `viewport`, в CSS — медиазапросы для шапки, сеток проектов и участников, профиля |
+| 19 | `includes/header.html` | кнопка меню — `<a>` без `href`, с клавиатуры не открыть; закрытое меню ловит фокус Tab и выводится гостю со ссылкой `/users/None/` | `<button aria-expanded aria-controls>`, закрытое меню `visibility: hidden`, меню только для авторизованных, Escape закрывает |
+| 20 | `skills.js` | Enter добавлял первую подсказку («Java» → «JavaScript»); новый тег собирался через `innerHTML` — XSS через навык, созданный другим пользователем | Enter отправляет введённое название, подсказка выбирается стрелками; тег собирается через `textContent` |
+| 21 | `register.html`, `edit_profile.html`, `create-project.html` | ошибки выводились одним блоком внизу формы, в регистрации — `<ul>` внутри `<p>` | `{{ form.<поле>.errors }}` под каждым полем; Django 5.2 сам добавляет `aria-invalid` и `aria-describedby` |
+| 22 | Перевод Django 5.2 | у `MinimumLengthValidator` нет русского текста — ошибка выводилась по-английски | `users.validators.MinimumLengthValidator` с русским текстом и склонением числа |
+| 23 | Страницы ошибок | при `DEBUG=False` — английская «Not Found» без навигации; `project_edit` для чужого проекта отдавал голый текст | `403.html`, `404.html`, `500.html` в стиле сайта; `project_edit` бросает `PermissionDenied` |
+| 24 | Контраст (WCAG 1.4.3) | даты и счётчики `#888`/`#777` — 3.54:1 и 4.48:1, текст ошибок `red` — 4.0:1 при норме 4.5:1 | `#6b7280` (4.83:1) и `#d93025` (4.78:1) |
