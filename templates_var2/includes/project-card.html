@@ -22,7 +22,7 @@
     <p class="project-card-description">{{ project.description|truncatechars:150 }}</p>
 
     <div class="project-card-footer">
-        <span class="project-status-black">
+        <span class="project-status-black{% if project.status == "closed" %} is-closed{% endif %}">
             {% if project.status == "open" %}
                 Открыт
             {% elif project.status == "closed" %}

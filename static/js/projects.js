@@ -7,6 +7,7 @@
         e.preventDefault();
         const projectId = completeBtn.dataset.id;
         if (!projectId) return;
+        if (!confirm("Завершить проект? Статус сменится на «Закрыт».")) return;
 
         fetch(`/projects/${projectId}/complete/`, {
           method: "POST",
@@ -20,7 +21,10 @@
         .then(data => {
           if (data.status === "ok") {
             const statusEl = document.querySelector(".project-status-black");
-            if (statusEl) statusEl.textContent = "Закрыт";
+            if (statusEl) {
+              statusEl.textContent = "Закрыт";
+              statusEl.classList.add("is-closed");
+            }
             completeBtn.remove();
             if (window.toast) window.toast("Проект завершён", { type: 'info' });
           } else {
@@ -73,15 +77,25 @@
             const a = document.createElement("a");
             a.href = `/users/${userId}`;
             a.id = `participant-${userId}`;
-            a.innerHTML = `
-              <div class="participant-item">
-                <img src="${userAvatar}" alt="Аватар" class="participant-avatar">
-                <div class="participant-info">
-                  <span class="participant-name">${userName}</span>
-                  <span class="participant-role">Участник</span>
-                </div>
-              </div>
-            `;
+
+            const item = document.createElement("div");
+            item.className = "participant-item";
+            const img = document.createElement("img");
+            img.src = userAvatar;
+            img.alt = "Аватар";
+            img.className = "participant-avatar";
+            const info = document.createElement("div");
+            info.className = "participant-info";
+            const name = document.createElement("span");
+            name.className = "participant-name";
+            name.textContent = userName;
+            const role = document.createElement("span");
+            role.className = "participant-role";
+            role.textContent = "Участник";
+
+            info.append(name, role);
+            item.append(img, info);
+            a.appendChild(item);
             participantsList.appendChild(a);
 
             participantsCount.textContent = parseInt(participantsCount.textContent) + 1;

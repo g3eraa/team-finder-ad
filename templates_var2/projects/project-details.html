@@ -26,7 +26,7 @@
                 </div>
             </a>
             <div class="project-card-header-right">
-                <span class="project-status-black">
+                <span class="project-status-black{% if project.status == "closed" %} is-closed{% endif %}">
                     {% if project.status == "open" %}
                         Открыт
                     {% elif project.status == "closed" %}
@@ -39,7 +39,7 @@
         </div>
 
         <div class="project-card-body">
-                <h2 class="project-title">{{ project.name }}</h2>
+                <h1 class="project-title">{{ project.name }}</h1>
                 <p class="project-description">{{ project.description }}</p>
 
                 {% if project.github_url %}
@@ -52,7 +52,8 @@
         <div class="project-actions">
             <a href="#"
                class="black-button black-button-share share-button"
-               data-url="/projects/{{ project.id }}">
+               data-url="/projects/{{ project.id }}"
+               aria-label="Скопировать ссылку на проект" title="Скопировать ссылку на проект">
                 {% include 'includes/svg/share.html' %}
             </a>
             {% if user.id == project.owner.id %}
@@ -79,6 +80,10 @@
                             Участвовать
                         {% endif %}
                     </button>
+                {% elif project.status == "open" %}
+                    <a href="/users/login/?next=/projects/{{ project.id }}/" class="black-button">
+                        Войти, чтобы участвовать
+                    </a>
                 {% endif %}
             {% endif %}
         </div>

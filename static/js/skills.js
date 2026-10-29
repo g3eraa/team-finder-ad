@@ -82,17 +82,32 @@
       hideInput();
     });
 
+    function moveActive(step) {
+      const items = [...suggestions.querySelectorAll("li")];
+      if (!items.length || suggestions.classList.contains("hidden")) return;
+      const current = items.findIndex(li => li.classList.contains("active"));
+      const next = (current + step + items.length) % items.length;
+      items.forEach(li => li.classList.remove("active"));
+      items[next].classList.add("active");
+      items[next].scrollIntoView({ block: "nearest" });
+    }
+
     input.addEventListener("keydown", async (e) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        moveActive(e.key === "ArrowDown" ? 1 : -1);
+      }
       if (e.key === "Enter") {
         e.preventDefault();
         const q = input.value.trim();
         if (!q) return;
 
-        const first = suggestions.querySelector("li");
-        if (first && first.dataset.id) {
-          await addSkillById(first.dataset.id);
+        // Подсказку берём, только если её выбрали стрелками; иначе — ровно то, что введено.
+        const active = suggestions.querySelector("li.active");
+        if (active && active.dataset.id) {
+          await addSkillById(active.dataset.id);
         } else {
-          await addSkillByName(q);
+          await addSkillByName(active ? active.dataset.name : q);
         }
         hideInput();
       }
@@ -119,9 +134,23 @@
         });
         if (res.ok) {
           chip.remove();
+        } else {
+          showError(res);
         }
       }
     });
+
+    async function showError(res) {
+      let message = "Не удалось сохранить навык. Попробуйте ещё раз.";
+      try {
+        const data = await res.json();
+        if (data.message) message = data.message;
+      } catch (err) {
+        // ответ не JSON — оставляем общее сообщение
+      }
+      if (window.toast) window.toast(message, { type: "error" });
+      else alert(message);
+    }
 
     async function addSkillById(skillId) {
       const res = await fetch(addUrl, {
@@ -135,6 +164,8 @@
       if (res.ok) {
         const skill = await res.json();
         appendChip(skill.id, skill.name);
+      } else {
+        showError(res);
       }
     }
 
@@ -150,6 +181,8 @@
       if (res.ok) {
         const skill = await res.json();
         appendChip(skill.id, skill.name);
+      } else {
+        showError(res);
       }
     }
 
@@ -159,7 +192,14 @@
       const chip = document.createElement("span");
       chip.className = "skill-chip";
       chip.dataset.id = id;
-      chip.innerHTML = `${name} <button type="button" class="remove-skill-btn" aria-label="Удалить" title="Удалить">×</button>`;
+      // Название навыка задают пользователи, поэтому только textContent, без innerHTML.
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "remove-skill-btn";
+      removeBtn.textContent = "×";
+      removeBtn.setAttribute("aria-label", `Удалить навык ${name}`);
+      removeBtn.title = "Удалить";
+      chip.append(document.createTextNode(`${name} `), removeBtn);
 
       container.insertBefore(chip, addBtn);
 

@@ -1,0 +1,22 @@
+# SITE_ADDRESS не задан — сайт открывается по HTTP на порту 80 (локально).
+# SITE_ADDRESS=teamfinder.ru — Caddy сам получает и продлевает HTTPS-сертификат.
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	handle_path /static/* {
+		root * /srv/static
+		file_server
+	}
+
+	handle_path /media/* {
+		root * /srv/media
+		file_server
+	}
+
+	handle {
+		request_body {
+			max_size 10MB
+		}
+		reverse_proxy web:8000
+	}
+}

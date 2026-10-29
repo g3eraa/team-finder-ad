@@ -10,7 +10,7 @@
 
 {% block content %}
 <div class="profile-edit-container">
-    <h2 class="form-title">Редактирование профиля</h2>
+    <h1 class="form-title">Редактирование профиля</h1>
     <form method="post" enctype="multipart/form-data" class="profile-edit-form">
         {% csrf_token %}
 
@@ -27,43 +27,41 @@
             </div>
             {{ form.avatar }}
         </div>
+        {{ form.avatar.errors }}
 
         <div class="form-row">
             <div class="form-field">
                 {{ form.name.label_tag }}
                 {{ form.name }}
+                {{ form.name.errors }}
             </div>
             <div class="form-field">
                 {{ form.surname.label_tag }}
                 {{ form.surname }}
+                {{ form.surname.errors }}
             </div>
         </div>
 
         <div class="form-field">
             {{ form.about.label_tag }}
             {{ form.about }}
+                {{ form.about.errors }}
         </div>
 
         <div class="form-row">
             <div class="form-field">
                 {{ form.phone.label_tag }}
                 {{ form.phone }}
+                {{ form.phone.errors }}
             </div>
             <div class="form-field">
                 {{ form.github_url.label_tag }}
                 {{ form.github_url }}
+                {{ form.github_url.errors }}
             </div>
         </div>
 
-        {% if form.errors %}
-        <div class="form-errors">
-            {% for field, errors in form.errors.items %}
-                {% for error in errors %}
-                    <p>{{ error }}</p>
-                {% endfor %}
-            {% endfor %}
-        </div>
-        {% endif %}
+        {{ form.non_field_errors }}
 
         <div class="form-actions">
             <a href="/users/{{ user.id }}" class="cancel-button">Отмена</a>
@@ -71,4 +69,10 @@
         </div>
     </form>
 </div>
+<script>
+  document.getElementById("id_avatar").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) document.querySelector(".avatar-preview img").src = URL.createObjectURL(file);
+  });
+</script>
 {% endblock %}

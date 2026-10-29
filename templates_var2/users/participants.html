@@ -48,7 +48,8 @@
                 <p class="participant-role">{{ participant.about|truncatechars:80 }}</p>
             </div>
             <div class="participant-card-footer">
-                <a href="/users/{{ participant.id }}" class="white-button">
+                <a href="/users/{{ participant.id }}" class="white-button"
+                   aria-label="Посмотреть контакты: {{ participant.name }} {{ participant.surname }}">
                     {% include 'includes/svg/eye.html' %} Посмотреть контакты
                 </a>
             </div>

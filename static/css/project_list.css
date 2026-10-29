@@ -77,7 +77,7 @@
 }
 
 .project-date {
-    color: #888;
+    color: #6b7280;
     font-size: 12px;
     font-weight: 400;
 }
@@ -108,7 +108,7 @@
 .project-participants {
     display: flex;
     font-size: 12px;
-    color: #777;
+    color: #6b7280;
     display: flex;
     align-items: flex-end;
 }
@@ -267,4 +267,32 @@
     background: #333;
     color: white;
     border-color: #333;
+}
+
+@media (max-width: 1023px) {
+    .projects-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 639px) {
+    .projects-grid,
+    .collapsed-project-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .project-card {
+        height: auto;
+        min-height: 180px;
+    }
+
+    .project-header {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .project-title {
+        height: auto;
+        font-size: 24px;
+    }
 }

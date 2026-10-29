@@ -3,14 +3,19 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="TeamFinder — платформа, где разработчики и дизайнеры находят команду для pet-проектов." />
     <title>{% block title %}TeamFinder{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link rel="stylesheet" href="{% static 'css/header.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body data-page="{% block page_id %}default{% endblock %}">
+<a href="#main" class="skip-link">Перейти к содержимому</a>
 {% include 'includes/header.html' %}
+<main id="main">
 {% block content %}{% endblock %}
+</main>
 <script src="{% static 'js/utils.js' %}"></script>
 <script src="{% static 'js/share.js' %}"></script>
 <script src="{% static 'js/header.js' %}"></script>
