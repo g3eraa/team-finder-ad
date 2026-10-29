@@ -11,8 +11,8 @@
 {% block content %}
 <div class="project-container">
     <div class="project-header">
-        <h2 class="project-title">Актуальные проекты</h2>
-        {% if projects %}
+        <h1 class="project-title">Актуальные проекты</h1>
+        {% if projects and user.is_authenticated %}
             <a href="/projects/create-project" class="black-button">+ Создать проект</a>
         {% endif %}
     </div>

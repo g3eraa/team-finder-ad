@@ -23,29 +23,32 @@
                     {% include 'includes/svg/plus.html' %}
                     <p>Создать проект</p>
                 </a>
-                <a class="user-menu nav-link">
+                <button type="button" class="user-menu nav-link"
+                        aria-label="Меню пользователя: {{ request.user.name }} {{ request.user.surname }}"
+                        aria-haspopup="true" aria-expanded="false" aria-controls="userSidebar">
                     {% if request.user.avatar %}
-                        <img src="{{ request.user.avatar.url }}" alt="Аватар" class="avatar">
+                        <img src="{{ request.user.avatar.url }}" alt="" class="avatar">
                     {% else %}
-                        <img src="{% static 'images/default-avatar.png' %}" alt="Аватар по умолчанию" class="avatar">
+                        <img src="{% static 'images/default-avatar.png' %}" alt="" class="avatar">
                     {% endif %}
                     <span class="username">{{ request.user.name }} {{ request.user.surname }}</span>
-                </a>
+                </button>
                 {% else %}
-                <button class="button button-login nav-link" onclick="window.location.href='/users/login/'">
+                <a href="/users/login/" class="button button-login nav-link">
                     {% include 'includes/svg/login.html' %}
                     <p>Войти</p>
-                </button>
-                <button class="button button-register nav-link black" onclick="window.location.href='/users/register/'">
+                </a>
+                <a href="/users/register/" class="button button-register nav-link black">
                     {% include 'includes/svg/register.html' %}
                     <p>Регистрация</p>
-                </button>
+                </a>
                 {% endif %}
             </div>
         </div>
     </div>
 </header>
-<div id="userSidebar" class="user-sidebar">
+{% if request.user.is_authenticated %}
+<nav id="userSidebar" class="user-sidebar" aria-label="Меню пользователя">
     <div class="sidebar-content">
         <a href="/users/{{ request.user.id }}/"><span>{% include 'includes/svg/profile.html' %} Мой профиль</span></a>
         <a href="/users/edit-profile/"><span>{% include 'includes/svg/settings.html' %} Редактировать профиль</span></a>
@@ -58,4 +61,5 @@
         <hr class="sidebar-divider">
         <a href="/users/logout/"><span style="color: #e7000b;">{% include 'includes/svg/leave.html' %} Выйти</span></a>
     </div>
-</div>
+</nav>
+{% endif %}

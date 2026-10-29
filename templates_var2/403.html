@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Нет доступа{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/project_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <h1 class="project-title">Нет доступа</h1>
+    <p class="project-subtitle">{% if exception %}{{ exception }}{% else %}У вас нет прав на это действие.{% endif %}</p>
+    <a href="/projects/list/" class="black-button">На главную</a>
+</div>
+{% endblock %}

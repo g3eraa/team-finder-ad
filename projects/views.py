@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
@@ -58,7 +59,7 @@ def project_create(request):
 def project_edit(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     if project.owner_id != request.user.pk:
-        return HttpResponseForbidden("Редактировать проект может только его автор.")
+        raise PermissionDenied("Редактировать проект может только его автор.")
     form = ProjectForm(request.POST or None, instance=project)
     if request.method == "POST" and form.is_valid():
         form.save()

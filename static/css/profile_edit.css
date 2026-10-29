@@ -55,7 +55,7 @@
 }
 
 .form-errors {
-    color: red;
+    color: #d93025;
     font-size: 13px;
 }
 
@@ -123,7 +123,8 @@
     transition: opacity 0.3s;
 }
 
-.avatar-preview:hover .overlay {
+.avatar-preview:hover .overlay,
+.avatar-preview:focus-within .overlay {
     opacity: 1;
 }
 

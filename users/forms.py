@@ -1,17 +1,33 @@
 from django import forms
 from django.contrib.auth import authenticate
-from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.password_validation import (
+    password_validators_help_text_html,
+    validate_password,
+)
 
 from .models import User
 from .validators import normalize_phone, validate_github_url
 
 
 class RegisterForm(forms.ModelForm):
-    password = forms.CharField(label="Пароль", widget=forms.PasswordInput)
+    password = forms.CharField(
+        label="Пароль",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+    )
 
     class Meta:
         model = User
         fields = ("name", "surname", "email")
+        widgets = {
+            "name": forms.TextInput(attrs={"autocomplete": "given-name"}),
+            "surname": forms.TextInput(attrs={"autocomplete": "family-name"}),
+            "email": forms.EmailInput(attrs={"autocomplete": "email"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Требования к паролю зависят от DEBUG, поэтому подсказку берём из валидаторов.
+        self.fields["password"].help_text = password_validators_help_text_html()
 
     def clean_email(self):
         return self.cleaned_data["email"].lower()
@@ -34,8 +50,13 @@ class RegisterForm(forms.ModelForm):
 
 
 class LoginForm(forms.Form):
-    email = forms.EmailField(label="Email")
-    password = forms.CharField(label="Пароль", widget=forms.PasswordInput)
+    email = forms.EmailField(
+        label="Email", widget=forms.EmailInput(attrs={"autocomplete": "email"})
+    )
+    password = forms.CharField(
+        label="Пароль",
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
 
     def __init__(self, request=None, *args, **kwargs):
         self.request = request
@@ -58,12 +79,26 @@ class LoginForm(forms.Form):
 
 class EditProfileForm(forms.ModelForm):
     # Длиннее 12 символов, чтобы принять номер с пробелами и скобками до нормализации.
-    phone = forms.CharField(label="Телефон", max_length=20, required=False)
+    phone = forms.CharField(
+        label="Телефон",
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(
+            attrs={"autocomplete": "tel", "inputmode": "tel", "placeholder": "+7XXXXXXXXXX"}
+        ),
+    )
 
     class Meta:
         model = User
         fields = ("name", "surname", "avatar", "about", "phone", "github_url")
-        widgets = {"avatar": forms.FileInput(attrs={"accept": "image/*"})}
+        widgets = {
+            "name": forms.TextInput(attrs={"autocomplete": "given-name"}),
+            "surname": forms.TextInput(attrs={"autocomplete": "family-name"}),
+            "avatar": forms.FileInput(attrs={"accept": "image/*"}),
+            "github_url": forms.URLInput(
+                attrs={"autocomplete": "url", "placeholder": "https://github.com/username"}
+            ),
+        }
 
     def clean_phone(self):
         phone = self.cleaned_data["phone"]

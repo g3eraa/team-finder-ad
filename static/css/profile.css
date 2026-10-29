@@ -66,3 +66,20 @@
 .projects-grid-single {
     grid-template-columns: 1fr;
 }
+
+@media (max-width: 767px) {
+    .profile-header {
+        flex-direction: column;
+    }
+
+    .profile-actions {
+        min-width: 0;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .profile-contacts {
+        flex-wrap: wrap;
+        gap: 8px 16px;
+    }
+}
