@@ -21,7 +21,7 @@
         <span class="filter-label">Фильтр по навыкам:</span>
         <div class="filter-chips">
             {% for skill in all_skills %}
-            <a href="?skill={{ skill }}"
+            <a href="?skill={{ skill|urlencode }}"
                class="filter-chip {% if active_skill == skill %}active{% endif %}">
                 {{ skill }}
             </a>

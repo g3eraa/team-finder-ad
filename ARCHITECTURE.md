@@ -366,7 +366,7 @@ flowchart LR
 flowchart LR
     U["/users/"]
 
-    U --> a["register/"] --> av["register"] --> at["users/register.html<br/>или 302 → /projects/list/"]
+    U --> a["register/"] --> av["register"] --> at["users/register.html<br/>или 302 → /users/login/"]
     U --> b["login/"] --> bv["login_view"] --> bt["users/login.html<br/>или 302 → /projects/list/"]
     U --> c["logout/"] --> cv["logout_view"] --> ct["302 → /projects/list/"]
     U --> d["list/?skill=&page="] --> dv["user_list"] --> dt["users/participants.html"]
@@ -405,7 +405,7 @@ flowchart LR
 | POST | `/projects/<int:project_id>/toggle-participate/` | `toggle_participate` | авторизован | `{"status": "ok", "participant": true}` или `false` |
 | GET, POST | `/users/register/` | `register` | гость | форма, затем 302 |
 | GET, POST | `/users/login/` | `login_view` | гость | форма, затем 302 → `/projects/list/` |
-| GET | `/users/logout/` | `logout_view` | авторизован | 302 → `/projects/list/` |
+| GET | `/users/logout/` | `logout_view` | все | 302 → `/projects/list/` |
 | GET | `/users/list/?skill=&page=` | `user_list` | все | `participants.html`, 12 на страницу, новые сверху |
 | GET | `/users/<int:user_id>/` | `user_detail` | все | `user-details.html` |
 | GET, POST | `/users/edit-profile/` | `edit_profile` | авторизован (свой профиль) | форма, затем 302 → `/users/<id>/` |
@@ -574,8 +574,7 @@ sequenceDiagram
         A->>A: первая буква имени на однотонном фоне
         A->>FS: avatar_uuid.png
         M->>DB: INSERT INTO users_user
-        V->>V: login(request, user)
-        V-->>B: 302 → /projects/list/
+        V-->>B: 302 → /users/login/
     end
 ```
 
@@ -619,7 +618,7 @@ sequenceDiagram
     O->>JS: «+ Добавить навык», ввод «Py»
     Note over JS: debounce через setTimeout
     JS->>V: GET /users/skills/?q=Py
-    V->>DB: Skill.objects.filter(name__istartswith="Py").order_by("name").values("id", "name")[:10]
+    V->>DB: Skill.objects.filter(name__istartswith="Py").order_by(Lower("name")).values("id", "name")[:10]
     DB-->>V: не больше 10 строк
     V-->>JS: 200 [{"id": 3, "name": "Python"}]
     JS-->>O: подсказки и «Создать „Py“», если точного совпадения нет
@@ -671,7 +670,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    REQ["GET /users/list/?skill=Python&page=2"] --> QS["qs = User.objects.order_by('-id')"]
+    REQ["GET /users/list/?skill=Python&page=2"] --> QS["qs = User.objects.filter(is_active=True).order_by('-id')"]
     QS --> HAS{"передан ?skill?"}
     HAS -- "да" --> FIL["qs = qs.filter(skills__name=skill).distinct()<br/>точное совпадение по названию"]
     HAS -- "нет" --> PAG
@@ -859,7 +858,7 @@ flowchart LR
     UL -- "Посмотреть контакты" --> UD
     UL -- "?skill=... / Сбросить" --> UL
 
-    RG -- "после регистрации" --> PL
+    RG -- "после регистрации" --> LI
     LI -- "после входа" --> PL
     LO --> PL
     PC -- "после сохранения" --> PD
@@ -905,9 +904,8 @@ flowchart LR
 INSTALLED_APPS += ["users", "projects"]
 
 AUTH_USER_MODEL = "users.User"   # задать ДО первого migrate
-LOGIN_URL = "/users/login/"
-LOGIN_REDIRECT_URL = "/projects/list/"
-LOGOUT_REDIRECT_URL = "/projects/list/"
+LOGIN_URL = "users:login"
+LANGUAGE_CODE = "ru-ru"           # русские сообщения стандартных форм и админки
 ```
 
 ---
@@ -920,8 +918,8 @@ LOGOUT_REDIRECT_URL = "/projects/list/"
 | 2 | `docs/4`, модель | `User.skills` описано как «внешний ключ», но по смыслу у пользователя много навыков, а у навыка много пользователей | `ManyToManyField(Skill, related_name="users", blank=True)` |
 | 3 | `skills.js` | тело запроса отправляется как JSON (`Content-Type: application/json`), поэтому `request.POST` пуст | читать `json.loads(request.body)` |
 | 4 | `participants.html` | docs передают `participants`, а шаблон перебирает `page_obj` и `query_prefix` | передавать `page_obj`, `all_skills`, `active_skill`, `query_prefix` |
-| 5 | `participants.html` | шаблон сравнивает `active_skill == skill` и строит `?skill={{ skill }}` | `all_skills` — список **строк** (`values_list("name", flat=True)`), иначе подсветка не сработает. Названия с `+`, `#` и пробелами (C++, C#) без `urlencode` в ссылке ломаются |
-| 6 | Регистрация | ТЗ: после регистрации — на страницу входа. docs/4: авторизовать и перейти на главную | выбрать один вариант и отметить выбор в `readme.md` для ревьюера |
+| 5 | `participants.html` | шаблон сравнивает `active_skill == skill` и строит `?skill={{ skill }}` | `all_skills` — список **строк** (`values_list("name", flat=True)`), иначе подсветка не сработает. Названия с `+`, `#` и пробелами (C++, C#) без `urlencode` в ссылке ломаются, поэтому в шаблоне добавлен фильтр `\|urlencode` |
+| 6 | Регистрация | ТЗ: после регистрации — на страницу входа. docs/4: авторизовать и перейти на главную | по ТЗ и чек-листу ревью: без автоматического входа, 302 → `/users/login/` |
 | 7 | `docs/4` | опечатки: `/project/list/` вместо `/projects/list/`, `{"from": form}` вместо `{"form": form}` | использовать `/projects/list/` и `form` |
 | 8 | Ссылки в шаблонах | часть ссылок без завершающего `/` (`/projects/list`, `/users/edit-profile`, `/users/{{ id }}`) | шаблоны URL со слешем; `APPEND_SLASH` (CommonMiddleware) сделает 301 для GET. Все POST из JS уже со слешем |
 | 9 | `user-details.html` | контекстная переменная `user` (просматриваемый профиль) перекрывает `user` из auth-процессора | текущего пользователя брать только как `request.user`; в `project_detail` свой `user` не передавать |
@@ -929,7 +927,7 @@ LOGOUT_REDIRECT_URL = "/projects/list/"
 | 11 | Модель `User` | `avatar` обязательное, но пользователь его не загружает | генерировать в `User.save()` или в `create_user`, если поле пусто |
 | 12 | Порядок сортировки пользователей | ТЗ: «от новых к старым», docs: «в порядке добавления (по id)» | `order_by("-id")` выполняет оба требования |
 | 13 | AJAX и `login_required` | `login_required` на JSON-эндпоинте даёт 302 на HTML-страницу входа, а `response.json()` в JS падает | в JSON-views проверять `is_authenticated` вручную и отвечать JSON 401/403 |
-| 14 | `docker-compose.yml` и `.env_example` | в compose порты `"5432:5432"`, а в `.env_example` `POSTGRES_PORT=5436` | согласовать: `"5436:5432"` в compose или `5432` в `.env` |
+| 14 | `docker-compose.yml` и `.env_example` | в compose порты `"5432:5432"`, а в `.env_example` `POSTGRES_PORT=5436` | в compose порт задан как `"${POSTGRES_PORT:-5432}:5432"` и берётся из `.env` |
 | 15 | Кастомный `User` | `AUTH_USER_MODEL` нельзя безболезненно поменять после первого `migrate` | создать приложение `users` с моделью до первой миграции |
 | 16 | Вариант 1 в шаблонах | `favorite_projects.html` и `project-fav-toggle.js` остались от варианта 1; в карточке варианта 2 сердечка нет | эндпоинты избранного не реализуются, подключённый скрипт ничего не делает |
 | 17 | Производительность | `project-card.html` вызывает `project.participants.count`, `owner.*` для каждой карточки | `select_related("owner").prefetch_related("participants")`; навыки — `prefetch_related("skills")` |
