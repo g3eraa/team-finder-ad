@@ -48,8 +48,7 @@ cp .env_example .env
 docker compose up -d --build
 ```
 
-Дождитесь запуска `web`; его логи можно посмотреть командой `docker compose logs web`.
-Затем загрузите данные для проверки и создайте администратора:
+Загрузите данные для проверки и создайте администратора:
 
 ```bash
 docker compose exec web python manage.py loaddata test_data
