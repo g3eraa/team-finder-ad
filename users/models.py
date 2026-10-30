@@ -2,7 +2,15 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 from django.db.models.functions import Lower
 
+from team_finder.constants import URL_MAX_LENGTH
+
 from .avatars import generate_avatar
+from .constants import (
+    ABOUT_MAX_LENGTH,
+    PHONE_MAX_LENGTH,
+    SKILL_NAME_MAX_LENGTH,
+    USER_NAME_MAX_LENGTH,
+)
 
 
 class UserManager(BaseUserManager):
@@ -30,7 +38,7 @@ class UserManager(BaseUserManager):
 
 
 class Skill(models.Model):
-    name = models.CharField("название", max_length=124)
+    name = models.CharField("название", max_length=SKILL_NAME_MAX_LENGTH)
 
     class Meta:
         ordering = (Lower("name"),)
@@ -50,12 +58,12 @@ class Skill(models.Model):
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField("email", unique=True)
-    name = models.CharField("имя", max_length=124)
-    surname = models.CharField("фамилия", max_length=124)
+    name = models.CharField("имя", max_length=USER_NAME_MAX_LENGTH)
+    surname = models.CharField("фамилия", max_length=USER_NAME_MAX_LENGTH)
     avatar = models.ImageField("аватар", upload_to="avatars/")
-    phone = models.CharField("телефон", max_length=12, unique=True, null=True, blank=True)
-    github_url = models.URLField("ссылка на GitHub", blank=True)
-    about = models.TextField("о себе", max_length=256, blank=True)
+    phone = models.CharField("телефон", max_length=PHONE_MAX_LENGTH, blank=True, default="")
+    github_url = models.URLField("ссылка на GitHub", max_length=URL_MAX_LENGTH, blank=True)
+    about = models.TextField("о себе", max_length=ABOUT_MAX_LENGTH, blank=True)
     skills = models.ManyToManyField(
         Skill, related_name="users", blank=True, verbose_name="навыки"
     )
@@ -71,6 +79,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = "пользователь"
         verbose_name_plural = "пользователи"
+        constraints = (
+            models.UniqueConstraint(
+                fields=("phone",),
+                condition=~models.Q(phone=""),
+                name="unique_nonempty_user_phone",
+                violation_error_message="Этот номер телефона уже используется.",
+            ),
+        )
 
     def __str__(self):
         return f"{self.name} {self.surname}"

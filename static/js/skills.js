@@ -1,5 +1,7 @@
-// Profile skills UI logic
 (function(){
+  const SUGGESTIONS_DEBOUNCE_MS = 200;
+  const INPUT_BLUR_DELAY_MS = 120;
+
   document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("skills-container");
     if (!container) return;
@@ -67,7 +69,7 @@
         }
 
         suggestions.classList.remove("hidden");
-      }, 200);
+      }, SUGGESTIONS_DEBOUNCE_MS);
     });
 
     suggestions.addEventListener("mousedown", async (e) => {
@@ -101,8 +103,6 @@
         e.preventDefault();
         const q = input.value.trim();
         if (!q) return;
-
-        // Подсказку берём, только если её выбрали стрелками; иначе — ровно то, что введено.
         const active = suggestions.querySelector("li.active");
         if (active && active.dataset.id) {
           await addSkillById(active.dataset.id);
@@ -116,7 +116,7 @@
       }
     });
 
-    input.addEventListener("blur", () => setTimeout(hideInput, 120));
+    input.addEventListener("blur", () => setTimeout(hideInput, INPUT_BLUR_DELAY_MS));
 
     function hideInput() {
       inputWrapper.classList.add("hidden");
@@ -125,19 +125,18 @@
     }
 
     container.addEventListener("click", async (e) => {
-      if (e.target.classList.contains("remove-skill-btn")) {
-        const chip = e.target.closest(".skill-chip");
-        const skillId = chip.dataset.id;
-        const res = await fetch(removeUrl(skillId), {
-          method: "POST",
-          headers: { "X-CSRFToken": getCookie("csrftoken") }
-        });
-        if (res.ok) {
-          chip.remove();
-        } else {
-          showError(res);
-        }
+      if (!e.target.classList.contains("remove-skill-btn")) return;
+      const chip = e.target.closest(".skill-chip");
+      const skillId = chip.dataset.id;
+      const res = await fetch(removeUrl(skillId), {
+        method: "POST",
+        headers: { "X-CSRFToken": getCookie("csrftoken") }
+      });
+      if (!res.ok) {
+        await showError(res);
+        return;
       }
+      chip.remove();
     });
 
     async function showError(res) {
@@ -146,7 +145,6 @@
         const data = await res.json();
         if (data.message) message = data.message;
       } catch (err) {
-        // ответ не JSON — оставляем общее сообщение
       }
       if (window.toast) window.toast(message, { type: "error" });
       else alert(message);
@@ -161,12 +159,12 @@
         },
         body: JSON.stringify({ skill_id: skillId }),
       });
-      if (res.ok) {
-        const skill = await res.json();
-        appendChip(skill.id, skill.name);
-      } else {
-        showError(res);
+      if (!res.ok) {
+        await showError(res);
+        return;
       }
+      const skill = await res.json();
+      appendChip(skill.id, skill.name);
     }
 
     async function addSkillByName(name) {
@@ -178,12 +176,12 @@
         },
         body: JSON.stringify({ name }),
       });
-      if (res.ok) {
-        const skill = await res.json();
-        appendChip(skill.id, skill.name);
-      } else {
-        showError(res);
+      if (!res.ok) {
+        await showError(res);
+        return;
       }
+      const skill = await res.json();
+      appendChip(skill.id, skill.name);
     }
 
     function appendChip(id, name) {
@@ -192,7 +190,6 @@
       const chip = document.createElement("span");
       chip.className = "skill-chip";
       chip.dataset.id = id;
-      // Название навыка задают пользователи, поэтому только textContent, без innerHTML.
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
       removeBtn.className = "remove-skill-btn";
@@ -208,18 +205,14 @@
     }
 
     function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== "") {
-        const cookies = document.cookie.split(";");
-        for (let cookie of cookies) {
-          cookie = cookie.trim();
-          if (cookie.startsWith(name + "=")) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
+      if (!document.cookie) return null;
+      for (const value of document.cookie.split(";")) {
+        const cookie = value.trim();
+        if (cookie.startsWith(name + "=")) {
+          return decodeURIComponent(cookie.substring(name.length + 1));
         }
       }
-      return cookieValue;
+      return null;
     }
   });
 })();

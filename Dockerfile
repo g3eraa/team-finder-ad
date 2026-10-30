@@ -19,7 +19,5 @@ RUN useradd --create-home --uid 1000 app \
 USER app
 
 EXPOSE 8000
-
-# Миграции и сборка статики выполняются при старте контейнера, см. entrypoint.sh.
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["gunicorn", "team_finder.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--access-logfile", "-"]

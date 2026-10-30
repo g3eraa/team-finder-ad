@@ -1,5 +1,3 @@
-// Global share button handler
-// Works for any element with class="share-button" and optional data-url attribute
 
 document.addEventListener("click", function (e) {
   const btn = e.target.closest(".share-button");

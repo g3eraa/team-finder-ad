@@ -14,7 +14,23 @@ class UserAdminCreationForm(BaseUserCreationForm):
 class UserAdminChangeForm(UserChangeForm):
     class Meta:
         model = User
-        fields = "__all__"
+        fields = (
+            "email",
+            "password",
+            "name",
+            "surname",
+            "avatar",
+            "about",
+            "phone",
+            "github_url",
+            "skills",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "groups",
+            "user_permissions",
+            "last_login",
+        )
 
 
 @admin.register(User)
@@ -51,5 +67,6 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Skill)
 class SkillAdmin(admin.ModelAdmin):
+    fields = ("name",)
     list_display = ("name",)
     search_fields = ("name",)

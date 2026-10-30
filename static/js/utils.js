@@ -1,24 +1,21 @@
-// Global utilities
 (function(){
-  // CSRF cookie utility
+  const TOAST_DEFAULT_DURATION_MS = 2200;
+  const TOAST_MIN_DURATION_MS = 1200;
+  const TOAST_FADE_DURATION_MS = 180;
+  const TOAST_REMOVE_DELAY_MS = 200;
+
   if (!window.getCookie) {
     window.getCookie = function(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== "") {
-        const cookies = document.cookie.split(";");
-        for (let cookie of cookies) {
-          cookie = cookie.trim();
-          if (cookie.startsWith(name + "=")) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
+      if (!document.cookie) return null;
+      for (const value of document.cookie.split(";")) {
+        const cookie = value.trim();
+        if (cookie.startsWith(name + "=")) {
+          return decodeURIComponent(cookie.substring(name.length + 1));
         }
       }
-      return cookieValue;
+      return null;
     }
   }
-
-  // Minimal toast notifications
   if (!window.toast) {
     function ensureContainer() {
       let c = document.getElementById('tf-toast-container');
@@ -39,7 +36,7 @@
     }
 
     window.toast = function(message, opts = {}) {
-      const { type = 'info', duration = 2200 } = opts;
+      const { type = 'info', duration = TOAST_DEFAULT_DURATION_MS } = opts;
       const container = ensureContainer();
 
       const el = document.createElement('div');
@@ -55,7 +52,7 @@
       el.style.wordBreak = 'break-all';
       el.style.textAlign = 'center';
       el.style.opacity = '0';
-      el.style.transition = 'opacity 180ms ease';
+      el.style.transition = `opacity ${TOAST_FADE_DURATION_MS}ms ease`;
 
       container.appendChild(el);
       requestAnimationFrame(() => { el.style.opacity = '1'; });
@@ -64,8 +61,8 @@
         el.style.opacity = '0';
         setTimeout(() => {
           el.remove();
-        }, 200);
-      }, Math.max(1200, duration));
+        }, TOAST_REMOVE_DELAY_MS);
+      }, Math.max(TOAST_MIN_DURATION_MS, duration));
     }
   }
 })();

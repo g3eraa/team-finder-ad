@@ -1,4 +1,3 @@
-// Project-specific JS (complete project action + toggle participate)
 (function(){
   document.addEventListener("DOMContentLoaded", function() {
     const completeBtn = document.getElementById("complete-project-btn");
@@ -19,18 +18,18 @@
         })
         .then(response => response.json())
         .then(data => {
-          if (data.status === "ok") {
-            const statusEl = document.querySelector(".project-status-black");
-            if (statusEl) {
-              statusEl.textContent = "Закрыт";
-              statusEl.classList.add("is-closed");
-            }
-            completeBtn.remove();
-            if (window.toast) window.toast("Проект завершён", { type: 'info' });
-          } else {
+          if (data.status !== "ok") {
             if (window.toast) window.toast("Ошибка при завершении проекта", { type: 'error' });
             else alert("Ошибка при завершении проекта");
+            return;
           }
+          const statusEl = document.querySelector(".project-status-black");
+          if (statusEl) {
+            statusEl.textContent = "Закрыт";
+            statusEl.classList.add("is-closed");
+          }
+          completeBtn.remove();
+          if (window.toast) window.toast("Проект завершён", { type: 'info' });
         })
         .catch(err => {
           console.error("Ошибка запроса:", err);

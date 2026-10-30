@@ -17,47 +17,33 @@
           body: JSON.stringify({})
         });
 
-        if (response.ok) {
-          if (isFavoritesPage && isFav) {
-            const card = button.closest(".project-card");
-            card.remove();
-
-            if (document.querySelectorAll(".project-card").length === 0) {
-              const emptyBlock = document.querySelector("#empty-favorite-template");
-              if (emptyBlock) {
-                emptyBlock.style.display = "block";
-              }
-            }
-          } else {
-            if (isFav) {
-              button.classList.remove("favorite");
-              button.classList.add("not-favorite");
-              button.dataset.fav = "false";
-            } else {
-              button.classList.remove("not-favorite");
-              button.classList.add("favorite");
-              button.dataset.fav = "true";
-            }
-          }
-        } else {
+        if (!response.ok) {
           alert("Ошибка при обновлении избранного");
+          return;
         }
+        if (isFavoritesPage && isFav) {
+          button.closest(".project-card").remove();
+          if (document.querySelectorAll(".project-card").length === 0) {
+            const emptyBlock = document.querySelector("#empty-favorite-template");
+            if (emptyBlock) emptyBlock.style.display = "block";
+          }
+          return;
+        }
+        button.classList.toggle("favorite", !isFav);
+        button.classList.toggle("not-favorite", isFav);
+        button.dataset.fav = String(!isFav);
       });
     });
   });
 
   function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-      const cookies = document.cookie.split(";");
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === name + "=") {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
+    if (!document.cookie) return null;
+    for (const value of document.cookie.split(";")) {
+      const cookie = value.trim();
+      if (cookie.startsWith(name + "=")) {
+        return decodeURIComponent(cookie.substring(name.length + 1));
       }
     }
-    return cookieValue;
+    return null;
   }
 </script>

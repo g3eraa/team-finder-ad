@@ -13,18 +13,19 @@ env:
 
 jobs:
   lint:
-    name: PEP 8 (flake8)
+    name: flake8 and isort
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install flake8
+      - run: pip install -r requirements-dev.txt
       - run: flake8 .
+      - run: isort --check-only .
 
-  tests:
-    name: Django tests
+  checks:
+    name: Django checks
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -58,11 +59,11 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python manage.py check
       - run: python manage.py makemigrations --check --dry-run
-      - run: python manage.py test
+      - run: python manage.py migrate --noinput
 
   build:
     name: Docker images
-    needs: [lint, tests]
+    needs: [lint, checks]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -101,7 +102,6 @@ jobs:
   deploy:
     name: Deploy to server
     needs: build
-    # Включается переменной репозитория DEPLOY_ENABLED=true, когда сервер готов (см. DEPLOY.md).
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:

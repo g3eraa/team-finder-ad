@@ -1,13 +1,17 @@
 from django.conf import settings
 from django.db import models
 
+from team_finder.constants import URL_MAX_LENGTH
+
+from .constants import PROJECT_NAME_MAX_LENGTH, PROJECT_STATUS_MAX_LENGTH
+
 
 class Project(models.Model):
     class Status(models.TextChoices):
         OPEN = "open", "Открыт"
         CLOSED = "closed", "Закрыт"
 
-    name = models.CharField("название проекта", max_length=200)
+    name = models.CharField("название проекта", max_length=PROJECT_NAME_MAX_LENGTH)
     description = models.TextField("описание проекта", blank=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -16,9 +20,9 @@ class Project(models.Model):
         verbose_name="автор",
     )
     created_at = models.DateTimeField("дата создания", auto_now_add=True)
-    github_url = models.URLField("ссылка на GitHub", blank=True)
+    github_url = models.URLField("ссылка на GitHub", max_length=URL_MAX_LENGTH, blank=True)
     status = models.CharField(
-        "статус", max_length=6, choices=Status.choices, default=Status.OPEN
+        "статус", max_length=PROJECT_STATUS_MAX_LENGTH, choices=Status.choices, default=Status.OPEN
     )
     participants = models.ManyToManyField(
         settings.AUTH_USER_MODEL,

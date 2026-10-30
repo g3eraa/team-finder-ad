@@ -1,20 +1,16 @@
 # Выкладка на сервер
 
-> **Для проверки проекта этот документ не нужен:** всё запускается локально по [README](readme.md).
-> Здесь описано, как выложить проект на свой сервер с доменом.
-> **Статус:** пайплайн собирает и публикует образы; шаг деплоя выключен, пока сервер не подключён.
-
 ## Как устроен CI/CD
 
 ```text
-push в main → flake8 + тесты → сборка образов → ghcr.io → ssh: docker compose pull && up -d
+push в main → flake8 + isort + проверки Django → сборка образов → ghcr.io → ssh: docker compose pull && up -d
 ```
 
 | Задача в [`ci.yml`](.github/workflows/ci.yml) | Когда запускается | Что делает |
 |---|---|---|
-| `lint` | каждый push и pull request в `main`, `develop` | `flake8` |
-| `tests` | там же | `manage.py check`, проверка миграций, тесты на PostgreSQL 16 |
-| `build` | после `lint` и `tests` | собирает образы `web` и `gateway`; при push в `main` публикует их в `ghcr.io` с тегами `latest` и SHA коммита |
+| `lint` | каждый push и pull request в `main`, `develop` | `flake8`, `isort --check-only .` |
+| `checks` | там же | `manage.py check`, проверка наличия и применение миграций на PostgreSQL 16 |
+| `build` | после `lint` и `checks` | собирает образы `web` и `gateway`; при push в `main` публикует их в `ghcr.io` с тегами `latest` и SHA коммита |
 | `deploy` | push в `main`, если задана переменная `DEPLOY_ENABLED=true` | копирует `docker-compose.production.yml` на сервер, скачивает образы этого коммита и перезапускает контейнеры |
 
 На сервере работают те же три контейнера, что и локально: `db`, `web` и `gateway`.
@@ -27,9 +23,8 @@ Caddy в `gateway` сам получает и продлевает HTTPS-сер�
 Подойдёт любой VPS с Ubuntu 22.04/24.04, 1 CPU и 1 ГБ памяти.
 
 ```bash
-# на сервере
 curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER        # перелогиниться, чтобы группа применилась
+sudo usermod -aG docker $USER
 mkdir ~/team-finder
 ```
 
@@ -74,7 +69,6 @@ TASK_VERSION=2
 DJANGO_ALLOWED_HOSTS=SERVER_IP
 DJANGO_CSRF_TRUSTED_ORIGINS=
 DJANGO_SECURE_COOKIES=False
-# SITE_ADDRESS не задавать — Caddy слушает порт 80 без HTTPS
 ```
 
 ## 4. Секреты и переменные в GitHub
@@ -99,7 +93,6 @@ DJANGO_SECURE_COOKIES=False
 ```bash
 cd ~/team-finder
 docker compose -f docker-compose.production.yml exec web python manage.py createsuperuser
-# при желании — тестовые пользователи и проекты:
 docker compose -f docker-compose.production.yml exec web python manage.py loaddata test_data
 ```
 
@@ -123,9 +116,9 @@ docker compose -f docker-compose.production.yml exec web python manage.py loadda
 
 ```bash
 cd ~/team-finder
-docker compose -f docker-compose.production.yml ps          # состояние контейнеров
-docker compose -f docker-compose.production.yml logs -f web # логи Django
-IMAGE_TAG=<sha коммита> docker compose -f docker-compose.production.yml up -d   # откат на версию
+docker compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.production.yml logs -f web
+IMAGE_TAG=<sha коммита> docker compose -f docker-compose.production.yml up -d
 docker compose -f docker-compose.production.yml exec db \
-  pg_dump -U team_finder team_finder > backup.sql           # резервная копия базы
+  pg_dump -U team_finder team_finder > backup.sql
 ```

@@ -4,19 +4,20 @@ from urllib.parse import urlparse
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 
-PHONE_PATTERN = re.compile(r"(?:\+7|8)\d{10}")
+from .constants import PHONE_NATIONAL_NUMBER_LENGTH
+
+PHONE_PATTERN = re.compile(rf"(?:\+7|8)\d{{{PHONE_NATIONAL_NUMBER_LENGTH}}}")
 PHONE_SEPARATORS = re.compile(r"[\s()-]")
 GITHUB_HOSTS = {"github.com", "www.github.com"}
 
 
 def normalize_phone(value):
-    """Проверяет номер телефона и приводит его к формату +7XXXXXXXXXX."""
     phone = PHONE_SEPARATORS.sub("", value)
     if not PHONE_PATTERN.fullmatch(phone):
         raise ValidationError(
             "Номер телефона должен быть в формате 8XXXXXXXXXX или +7XXXXXXXXXX."
         )
-    return f"+7{phone[-10:]}"
+    return f"+7{phone[-PHONE_NATIONAL_NUMBER_LENGTH:]}"
 
 
 def validate_github_url(value):
@@ -33,7 +34,6 @@ def _plural_ru(number, one, few, many):
 
 
 class MinimumLengthValidator(password_validation.MinimumLengthValidator):
-    """Стандартный валидатор с русским текстом: в переводе Django 5.2 его нет."""
 
     def _min_length_text(self):
         symbols = _plural_ru(self.min_length, "символ", "символа", "символов")

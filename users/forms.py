@@ -5,6 +5,7 @@ from django.contrib.auth.password_validation import (
     validate_password,
 )
 
+from .constants import PHONE_INPUT_MAX_LENGTH
 from .models import User
 from .validators import normalize_phone, validate_github_url
 
@@ -26,7 +27,6 @@ class RegisterForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Требования к паролю зависят от DEBUG, поэтому подсказку берём из валидаторов.
         self.fields["password"].help_text = password_validators_help_text_html()
 
     def clean_email(self):
@@ -35,11 +35,12 @@ class RegisterForm(forms.ModelForm):
     def _post_clean(self):
         super()._post_clean()
         password = self.cleaned_data.get("password")
-        if password:
-            try:
-                validate_password(password, self.instance)
-            except forms.ValidationError as error:
-                self.add_error("password", error)
+        if not password:
+            return
+        try:
+            validate_password(password, self.instance)
+        except forms.ValidationError as error:
+            self.add_error("password", error)
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -67,10 +68,11 @@ class LoginForm(forms.Form):
         cleaned_data = super().clean()
         email = cleaned_data.get("email")
         password = cleaned_data.get("password")
-        if email and password:
-            self.user = authenticate(self.request, email=email.lower(), password=password)
-            if self.user is None:
-                raise forms.ValidationError("Неверный email или пароль")
+        if not email or not password:
+            return cleaned_data
+        self.user = authenticate(self.request, email=email.lower(), password=password)
+        if self.user is None:
+            raise forms.ValidationError("Неверный email или пароль")
         return cleaned_data
 
     def get_user(self):
@@ -78,10 +80,9 @@ class LoginForm(forms.Form):
 
 
 class EditProfileForm(forms.ModelForm):
-    # Длиннее 12 символов, чтобы принять номер с пробелами и скобками до нормализации.
     phone = forms.CharField(
         label="Телефон",
-        max_length=20,
+        max_length=PHONE_INPUT_MAX_LENGTH,
         required=False,
         widget=forms.TextInput(
             attrs={"autocomplete": "tel", "inputmode": "tel", "placeholder": "+7XXXXXXXXXX"}
@@ -103,7 +104,7 @@ class EditProfileForm(forms.ModelForm):
     def clean_phone(self):
         phone = self.cleaned_data["phone"]
         if not phone:
-            return None
+            return ""
         phone = normalize_phone(phone)
         if User.objects.filter(phone=phone).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("Этот номер телефона уже используется.")

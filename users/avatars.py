@@ -31,7 +31,6 @@ def _load_font(size):
 
 
 def generate_avatar(name):
-    """Возвращает PNG с первой буквой имени на однотонном приглушённом фоне."""
     letter = ((name or "").strip()[:1] or "?").upper()
     background = random.choice(BACKGROUND_COLORS)
     image = Image.new("RGB", (AVATAR_SIZE, AVATAR_SIZE), background)

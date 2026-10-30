@@ -1,4 +1,3 @@
-// Header sidebar toggle logic
 (function(){
   document.addEventListener("DOMContentLoaded", function() {
     const userMenu = document.querySelector('.user-menu');
