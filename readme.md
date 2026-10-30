@@ -1,12 +1,31 @@
 # TeamFinder
 
-Сервис для поиска команды на pet-проекты. Можно опубликовать свою идею,
-присоединиться к чужому проекту и найти участников с нужными навыками.
-Это вариант 2 задания: навыки в профиле и фильтрация пользователей по ним.
+TeamFinder помогает найти команду для pet-проекта. Пользователь может опубликовать
+идею, присоединиться к чужой команде или найти человека с нужными навыками.
+В профилях видны описание, контакты и проекты участников.
 
-Проект написан на Django 5.2, база — PostgreSQL 16. Для аватарок используется Pillow.
-На сервере Django работает через Gunicorn, а Caddy отдаёт статику и медиа и принимает
-HTTPS-запросы. Всё это запускается через Docker Compose.
+Учебный проект, вариант 2 — навыки пользователей и фильтрация участников по навыкам.
+
+## Возможности
+
+- Регистрация и вход по email, редактирование профиля и смена пароля.
+- Загрузка аватара. Если его нет, при создании аккаунта генерируется картинка с первой буквой имени.
+- Создание и редактирование своих проектов, завершение проекта со сменой статуса на «Закрыт».
+- Присоединение к чужому проекту и выход из его участников.
+- Добавление и удаление навыков в профиле, подсказки при вводе и создание новых навыков.
+- Поиск участников по выбранному навыку. Проекты и участники выводятся по 12 на странице.
+- Управление пользователями и проектами через админку Django.
+
+Гости могут просматривать проекты и профили. Для создания проекта, участия в команде
+и изменения своих данных нужно войти в аккаунт.
+
+## Технологии
+
+Python, Django 5.2, PostgreSQL 16, Pillow, HTML, CSS и JavaScript.
+Страницы собираются на сервере через Django Templates.
+
+Для запуска используется Docker Compose. Caddy принимает запросы,
+отдаёт статику и загруженные файлы.
 
 ## Как запустить
 
@@ -22,8 +41,17 @@ cp .env_example .env
 
 ### Весь проект в Docker
 
+Для этого способа достаточно Docker с Docker Compose. Python и PostgreSQL
+на компьютер устанавливать не нужно.
+
 ```bash
 docker compose up -d --build
+```
+
+Дождитесь запуска `web`; его логи можно посмотреть командой `docker compose logs web`.
+Затем загрузите данные для проверки и создайте администратора:
+
+```bash
 docker compose exec web python manage.py loaddata test_data
 docker compose exec web python manage.py createsuperuser
 ```
@@ -39,12 +67,15 @@ docker compose exec web python manage.py migrate
 ```
 
 Если порт 80 занят, можно выбрать другой: `GATEWAY_PORT=8080 docker compose up -d`.
+В этом случае сайт будет доступен на http://localhost:8080/.
 Остановить проект — `docker compose down`. База, аватарки и собранная статика
 сохраняются в volumes.
 
 ### Django локально, PostgreSQL в Docker
 
-Для этого способа нужен Python 3.10–3.13. Команды ниже — для macOS и Linux.
+Нужны Python 3.10–3.13 и Docker Compose. Команды ниже — для macOS и Linux;
+`python3` должен указывать
+на одну из поддерживаемых версий Python.
 
 ```bash
 python3 -m venv .venv
@@ -60,152 +91,25 @@ python manage.py runserver
 Сайт откроется на http://localhost:8000/, админка — на http://localhost:8000/admin/.
 Настройки подключения к базе берутся из `.env`.
 
-## Переменные окружения
-
-Пример настроек находится в [.env_example](.env_example). При локальном запуске
-PostgreSQL доступна на порту `5436`. `TASK_VERSION=2` выбирает шаблоны из `templates_var2`.
-При запуске всего проекта в Docker адрес базы заменяется на `db`, порт — на `5432`,
-а `DJANGO_DEBUG` устанавливается в `False`.
-
-Для сервера задайте собственные секретный ключ и пароль базы, разрешённые домены
-и параметры HTTPS. Порядок настройки описан в [разделе «Деплой»](#деплой) ниже.
-
-## Данные для проверки
-
-Команда `loaddata test_data` загружает пять пользователей, их навыки и шесть
-проектов из [fixtures/test_data.json](fixtures/test_data.json). У каждого пользователя
-есть свой проект. Аватарки лежат в `media/avatars/`.
-
-Для входа можно использовать любой из аккаунтов:
-
-- `anna@example.com`
-- `maxim@example.com`
-- `katya@example.com`
-- `dmitry@example.com`
-- `sofia@example.com`
-
-Пароль у всех — `testpass123`.
-
-## Проверка кода
-
-```bash
-pip install -r requirements-dev.txt
-flake8 .
-isort --check-only .
-python manage.py check
-python manage.py makemigrations --check --dry-run
-```
-
-Чтобы исправить порядок импортов, выполните `isort .`. Настройки flake8 и isort
-лежат в `setup.cfg`.
-
-В [GitHub Actions](.github/workflows/ci.yml) эти проверки запускаются при push
-и pull request в `main` и `develop`. Там же миграции применяются к отдельной
-PostgreSQL и собираются Docker-образы. При push в `main` образы публикуются в GHCR
-с тегами `latest` и SHA коммита.
-
 ## Деплой
 
-Для сервера используется [docker-compose.production.yml](docker-compose.production.yml).
-Он запускает PostgreSQL, Django и Caddy из готовых образов. Деплой из GitHub Actions
-включается переменной `DEPLOY_ENABLED=true`.
+Деплой запускается через [GitHub Actions](.github/workflows/ci.yml).
+На сервере используется [docker-compose.production.yml](docker-compose.production.yml).
 
-### Подготовка сервера
+1. Подготовьте сервер с Docker, Docker Compose и доступом по SSH. Создайте папку
+   `~/team-finder` и откройте порт 80. Пользователь для деплоя должен иметь доступ
+   к Docker без `sudo`.
+2. Создайте в этой папке `.env` на основе `.env_example`. Укажите собственные
+   секретный ключ и пароль базы, установите `DJANGO_DEBUG=False` и добавьте адрес
+   сервера в `DJANGO_ALLOWED_HOSTS`.
+3. В настройках репозитория GitHub добавьте секреты `SSH_HOST`, `SSH_USER`, `SSH_KEY`
+   и переменную `DEPLOY_ENABLED=true`. Если порт SSH отличается от 22, задайте
+   секрет `SSH_PORT`. Для другой папки проекта укажите переменную `DEPLOY_DIR`.
+4. Сделайте push или merge в `main`. Workflow проверит код, соберёт и опубликует
+   образы в GHCR, скопирует Compose-файл на сервер и запустит новую версию проекта.
 
-На сервере должны быть установлены Docker и Docker Compose. Пользователю,
-под которым будет выполняться деплой, нужен доступ к Docker без `sudo`.
-Создайте папку проекта в его домашней директории:
-
-```bash
-mkdir -p ~/team-finder
-```
-
-Откройте порты SSH, `80` и `443` по TCP. Для HTTP/3 нужен ещё `443/udp`.
-Если есть домен, добавьте DNS-записи `A`, указывающие на IP сервера.
-
-На своём компьютере создайте отдельный SSH-ключ и добавьте его на сервер.
-Вместо `user@SERVER_IP` укажите своего пользователя и адрес:
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/teamfinder_deploy -N "" -C "github-actions-deploy"
-ssh-copy-id -i ~/.ssh/teamfinder_deploy.pub user@SERVER_IP
-```
-
-### Настройки на сервере
-
-Создайте файл `~/team-finder/.env` на основе `.env_example`. Задайте собственные
-пароль базы и секретный ключ, установите `DJANGO_DEBUG=False`, `POSTGRES_HOST=db`
-и `POSTGRES_PORT=5432`. Ключ можно сгенерировать локально:
-
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(50))"
-```
-
-Для доступа по IP укажите адрес сервера в `DJANGO_ALLOWED_HOSTS`, оставьте
-`DJANGO_CSRF_TRUSTED_ORIGINS` пустым, поставьте `DJANGO_SECURE_COOKIES=False`
-и не задавайте `SITE_ADDRESS`. Сайт будет доступен по HTTP на порту 80.
-
-### Настройки GitHub Actions
-
-В репозитории откройте Settings → Secrets and variables → Actions.
-
-| Тип | Имя | Значение |
-|---|---|---|
-| Secret | `SSH_HOST` | IP или адрес сервера |
-| Secret | `SSH_USER` | Пользователь на сервере |
-| Secret | `SSH_KEY` | Содержимое приватного ключа `~/.ssh/teamfinder_deploy` |
-| Secret | `SSH_PORT` | Порт SSH, если отличается от `22` |
-| Variable | `DEPLOY_ENABLED` | `true` |
-| Variable | `DEPLOY_DIR` | Папка проекта, если отличается от `team-finder` |
-
-Для публикации образов используется встроенный `GITHUB_TOKEN`.
-После push в `main` workflow проверит код, соберёт образы, скопирует Compose-файл
-на сервер и перезапустит контейнеры с новой версией.
-
-После первого деплоя подключитесь к серверу и создайте суперпользователя:
-
-```bash
-cd ~/team-finder
-docker compose -f docker-compose.production.yml exec web python manage.py createsuperuser
-```
-
-При необходимости загрузите демонстрационные данные:
-
-```bash
-docker compose -f docker-compose.production.yml exec web python manage.py loaddata test_data
-```
-
-Миграции и сборка статики выполняются при старте `web`. Если указан домен,
-Caddy получает и продлевает HTTPS-сертификат автоматически.
-
-После изменения `.env` выполните `docker compose -f docker-compose.production.yml up -d`.
-
-### Команды на сервере
-
-Состояние контейнеров и логи Django:
-
-```bash
-cd ~/team-finder
-docker compose -f docker-compose.production.yml ps
-docker compose -f docker-compose.production.yml logs -f web
-```
-
-Логи HTTPS и прокси можно посмотреть той же командой, заменив `web` на `gateway`.
-
-Резервная копия базы:
-
-```bash
-docker compose -f docker-compose.production.yml exec -T db \
-  pg_dump -U team_finder team_finder > backup.sql
-```
-
-Чтобы запустить образы другого коммита, замените `commit_sha` на его SHA:
-
-```bash
-export IMAGE_TAG=commit_sha
-docker compose -f docker-compose.production.yml pull web gateway
-docker compose -f docker-compose.production.yml up -d
-```
+Миграции и сборка статики выполняются при запуске приложения. Следующие изменения
+в `main` выкладываются тем же workflow автоматически.
 
 ## Автор
 
